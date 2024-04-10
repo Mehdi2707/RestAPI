@@ -55,18 +55,25 @@ class ModelsController extends AbstractController
         in: "query",
         schema: new OA\Schema(type: 'int')
     )]
+    #[OA\Parameter(
+        name: "term",
+        description: "Mots clés pour effectuer une recherche",
+        in: "query",
+        schema: new OA\Schema(type: 'string')
+    )]
     #[OA\Tag(name: "Models")]
     public function getModelList(ModelsRepository $modelsRepository, SerializerInterface $serializer, Request $request, TagAwareCacheInterface $cache, VersioningService $versioningService): JsonResponse
     {
         $page = $request->get('page', 1);
         $limit = $request->get('limit', 3);
+        $term = $request->get('term', '');
 
-        $idCache = "getModelList-" . $page . "-" . $limit;
+        $idCache = "getModelList-" . $page . "-" . $limit . "-" . $term;
 
-        $jsonModelList = $cache->get($idCache, function (ItemInterface $item) use ($modelsRepository, $page, $limit, $serializer, $versioningService) {
+        $jsonModelList = $cache->get($idCache, function (ItemInterface $item) use ($modelsRepository, $page, $limit, $term, $serializer, $versioningService) {
             $item->tag("modelsCache");
             $version = $versioningService->getVersion();
-            $modelList = $modelsRepository->findAllWithPagination($page, $limit);
+            $modelList = $modelsRepository->findAllWithPaginationAndSearch($page, $limit, $term);
             $context = SerializationContext::create()->setGroups(['getModels']);
             $context->setVersion($version);
             return $serializer->serialize($modelList, 'json', $context);

@@ -4,6 +4,7 @@ namespace App\Repository;
 
 use App\Entity\Models;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
+use Doctrine\ORM\Tools\Pagination\Paginator;
 use Doctrine\Persistence\ManagerRegistry;
 
 /**
@@ -22,15 +23,29 @@ class ModelsRepository extends ServiceEntityRepository
     }
 
     /**
-     * @return Models[] Returns an array of Models objects with pagination
+     * @return Models[] Returns an array of Models objects with pagination and search
      */
-    public function findAllWithPagination($page, $limit): array
+    public function findAllWithPaginationAndSearch($page, $limit, $term): array
     {
+        $result = [];
+
         $qb = $this->createQueryBuilder('m')
+            ->where('m.title LIKE :term')
+            ->orWhere('m.description LIKE :term')
+            ->setParameter('term', '%' . $term . '%')
             ->setFirstResult(($page - 1) * $limit)
             ->setMaxResults($limit);
 
-        return $qb->getQuery()->getResult();
+        $paginator = new Paginator($qb);
+        $data = $paginator->getQuery()->getResult();
+        $pages = ceil($paginator->count() / $limit);
+
+        $result['data'] = $data;
+        $result['pages'] = $pages;
+        $result['page'] = intval($page);
+        $result['limit'] = $limit;
+
+        return $result;
     }
 
     //    /**
