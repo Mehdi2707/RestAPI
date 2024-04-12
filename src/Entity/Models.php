@@ -69,7 +69,7 @@ class Models
     #[Groups(["getModels", "getImages"])]
     private ?\DateTimeImmutable $createdAt = null;
 
-    #[ORM\OneToMany(targetEntity: Images::class, mappedBy: 'model')]
+    #[ORM\OneToMany(targetEntity: Images::class, mappedBy: 'model', cascade: ['persist'])]
     #[Groups(["getModels"])]
     private Collection $images;
 

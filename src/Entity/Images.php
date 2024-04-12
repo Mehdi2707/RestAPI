@@ -15,7 +15,7 @@ class Images
     #[Groups(["getModels", "getImages"])]
     private ?int $id = null;
 
-    #[ORM\ManyToOne(inversedBy: 'images', cascade: ["persist"])]
+    #[ORM\ManyToOne(inversedBy: 'images')]
     #[ORM\JoinColumn(nullable: false)]
     #[Groups(["getImages"])]
     private ?Models $model = null;

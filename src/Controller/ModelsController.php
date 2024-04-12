@@ -2,8 +2,10 @@
 
 namespace App\Controller;
 
+use App\Entity\Images;
 use App\Entity\Models;
 use App\Repository\ModelsRepository;
+use App\Service\PictureService;
 use App\Service\VersioningService;
 use Doctrine\ORM\EntityManagerInterface;
 use JMS\Serializer\SerializationContext;
@@ -162,22 +164,32 @@ class ModelsController extends AbstractController
     )]
     #[OA\Tag(name: "Models")]
     #[IsGranted('ROLE_ADMIN', message: "Vous n\'avez pas les droits suffisants pour créer un modèle")]
-    public function createModel(Request $request, SerializerInterface $serializer, EntityManagerInterface $em, UrlGeneratorInterface $urlGenerator, ValidatorInterface $validator, TagAwareCacheInterface $cache, SluggerInterface $slugger): JsonResponse
+    public function createModel(Request $request, SerializerInterface $serializer, EntityManagerInterface $em, PictureService $pictureService, UrlGeneratorInterface $urlGenerator, ValidatorInterface $validator, TagAwareCacheInterface $cache, SluggerInterface $slugger): JsonResponse
     {
-        $model = $serializer->deserialize($request->getContent(), Models::class, 'json');
+        $modelData = $request->request->all();
 
+        $model = new Models();
         $model->setCreatedAt(new \DateTimeImmutable());
-        $model->setSlug($slugger->slug($model->getTitle())->lower());
+        $model->setSlug($slugger->slug($modelData['title'])->lower());
+        $model->setTitle($modelData['title']);
+        $model->setDescription($modelData['description']);
+        $model->setFile($modelData['file']);
 
         $errors = $validator->validate($model);
 
         if($errors->count() > 0)
             return new JsonResponse($serializer->serialize($errors, 'json'), JsonResponse::HTTP_BAD_REQUEST, [], true);
 
-        if(array_key_exists("images", $request->toArray()))
-            foreach ($model->getImages() as $image) {
-                $em->persist($image);
+        if($request->files->get('images')) {
+            foreach ($request->files->get('images') as $imageData) {
+                $folder = 'models';
+                $file = $pictureService->add($imageData, $folder, 400, 400);
+
+                $image = new Images();
+                $image->setName($file);
+                $model->addImage($image);
             }
+        }
 
         $em->persist($model);
         $em->flush();
@@ -205,7 +217,7 @@ class ModelsController extends AbstractController
      * @return JsonResponse
      * @throws InvalidArgumentException
      */
-    #[Route('/api/models/{id}', name:"updateModel", methods:['PUT'])]
+    #[Route('/api/models/{id}', name:"updateModel", methods:['PUT', 'POST'])]
     #[OA\Response(
         response: 204,
         description: "Met à jour un modèle"
@@ -213,21 +225,32 @@ class ModelsController extends AbstractController
     // Attribut pour mettre a jour un modèle à faire
     #[OA\Tag(name: "Models")]
     #[IsGranted('ROLE_ADMIN', message: "Vous n\'avez pas les droits suffisants pour éditer un modèle")]
-    public function updateModel(Request $request, SerializerInterface $serializer, Models $model, EntityManagerInterface $em, ValidatorInterface $validator, TagAwareCacheInterface $cache, SluggerInterface $slugger): JsonResponse
+    public function updateModel(Request $request, SerializerInterface $serializer, PictureService $pictureService, Models $model, EntityManagerInterface $em, ValidatorInterface $validator, TagAwareCacheInterface $cache, SluggerInterface $slugger): JsonResponse
     {
-        $updatedModel = $serializer->deserialize($request->getContent(),Models::class,'json');
-        $model->setTitle($updatedModel->getTitle());
-        $model->setDescription($updatedModel->getDescription());
-        $model->setSlug($slugger->slug($updatedModel->getTitle())->lower());
+        $updatedModel = $request->request->all();
+
+        $model->setSlug($slugger->slug($updatedModel['title'])->lower());
+        $model->setTitle($updatedModel['title']);
+        $model->setDescription($updatedModel['description']);
+        $model->setFile($updatedModel['file']);
 
         $errors = $validator->validate($model);
 
         if($errors->count() > 0)
             return new JsonResponse($serializer->serialize($errors, 'json'), JsonResponse::HTTP_BAD_REQUEST, [], true);
 
-        // GESTION DES IMAGES A FAIRE
+        if($request->files->get('images')) {
+            foreach ($request->files->get('images') as $imageData) {
+                $folder = 'models';
+                $file = $pictureService->add($imageData, $folder, 400, 400);
 
-        $em->persist($updatedModel);
+                $image = new Images();
+                $image->setName($file);
+                $model->addImage($image);
+            }
+        }
+
+        $em->persist($model);
         $em->flush();
 
         $cache->invalidateTags(['modelsCache']);
