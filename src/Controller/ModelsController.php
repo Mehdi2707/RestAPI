@@ -173,7 +173,7 @@ class ModelsController extends AbstractController
         $model->setSlug($slugger->slug($modelData['title'])->lower());
         $model->setTitle($modelData['title']);
         $model->setDescription($modelData['description']);
-        $model->setFile($modelData['file']);
+//        $model->setFile($modelData['file']);
 
         $errors = $validator->validate($model);
 
@@ -232,7 +232,7 @@ class ModelsController extends AbstractController
         $model->setSlug($slugger->slug($updatedModel['title'])->lower());
         $model->setTitle($updatedModel['title']);
         $model->setDescription($updatedModel['description']);
-        $model->setFile($updatedModel['file']);
+//        $model->setFile($updatedModel['file']);
 
         $errors = $validator->validate($model);
 

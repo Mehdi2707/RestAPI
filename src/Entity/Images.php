@@ -12,16 +12,16 @@ class Images
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(["getModels", "getImages"])]
+    #[Groups(["getModels", "getImages", "getFiles", "getTags"])]
     private ?int $id = null;
 
     #[ORM\ManyToOne(inversedBy: 'images')]
     #[ORM\JoinColumn(nullable: false)]
-    #[Groups(["getImages"])]
+    #[Groups(["getImages", "getFiles", "getTags"])]
     private ?Models $model = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(["getModels", "getImages"])]
+    #[Groups(["getModels", "getImages", "getFiles", "getTags"])]
     private ?string $name = null;
 
     public function getId(): ?int

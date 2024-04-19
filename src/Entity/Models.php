@@ -46,42 +46,49 @@ class Models
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(["getModels", "getImages"])]
+    #[Groups(["getModels", "getImages", "getFiles", "getTags"])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(["getModels", "getImages"])]
+    #[Groups(["getModels", "getImages", "getFiles", "getTags"])]
     #[Assert\NotBlank(message: "Le titre du modèle est obligatoire")]
     #[Assert\Length(min: 4, max: 255, minMessage: "Le titre doit faire au moins {{ limit }} caractères", maxMessage: "Le titre ne peut pas faire plus de {{ limit }} caractères")]
     private ?string $title = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(["getModels", "getImages"])]
+    #[Groups(["getModels", "getImages", "getFiles", "getTags"])]
     private ?string $slug = null;
 
     #[ORM\Column(type: Types::TEXT)]
-    #[Groups(["getModels", "getImages"])]
+    #[Groups(["getModels", "getImages", "getFiles", "getTags"])]
     #[Assert\NotBlank(message: "La description du modèle est obligatoire")]
     #[Assert\Length(min: 10, minMessage: "La description doit faire au moins {{ limit }} caractères")]
     private ?string $description = null;
 
     #[ORM\Column(options: ['default' => 'CURRENT_TIMESTAMP'])]
-    #[Groups(["getModels", "getImages"])]
+    #[Groups(["getModels", "getImages", "getFiles", "getTags"])]
     private ?\DateTimeImmutable $createdAt = null;
 
     #[ORM\OneToMany(targetEntity: Images::class, mappedBy: 'model', cascade: ['persist'])]
-    #[Groups(["getModels"])]
+    #[Groups(["getModels", "getFiles", "getTags"])]
     private Collection $images;
 
-    #[ORM\Column(length: 255)]
-    #[Groups(["getModels"])]
+    #[ORM\ManyToMany(targetEntity: Tag::class, inversedBy: 'models')]
+    #[Groups(["getModels", "getImages", "getFiles"])]
     #[Since("2.0")]
-    private ?string $file = null;
+    private Collection $tags;
+
+    #[ORM\OneToMany(targetEntity: File::class, mappedBy: 'model', cascade: ['persist'])]
+    #[Groups(["getModels", "getImages", "getTags"])]
+    #[Since("2.0")]
+    private Collection $files;
 
     public function __construct()
     {
         $this->images = new ArrayCollection();
         $this->createdAt = new \DateTimeImmutable();
+        $this->tags = new ArrayCollection();
+        $this->files = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -167,14 +174,56 @@ class Models
         return $this;
     }
 
-    public function getFile(): ?string
+    /**
+     * @return Collection<int, Tag>
+     */
+    public function getTags(): Collection
     {
-        return $this->file;
+        return $this->tags;
     }
 
-    public function setFile(string $file): static
+    public function addTag(Tag $tag): static
     {
-        $this->file = $file;
+        if (!$this->tags->contains($tag)) {
+            $this->tags->add($tag);
+        }
+
+        return $this;
+    }
+
+    public function removeTag(Tag $tag): static
+    {
+        $this->tags->removeElement($tag);
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, File>
+     */
+    public function getFiles(): Collection
+    {
+        return $this->files;
+    }
+
+    public function addFile(File $file): static
+    {
+        if (!$this->files->contains($file)) {
+            $this->files->add($file);
+            $file->setModel($this);
+        }
+
+        return $this;
+    }
+
+    public function removeFile(File $file): static
+    {
+        if ($this->files->removeElement($file)) {
+            // set the owning side to null (unless already changed)
+            if ($file->getModel() === $this) {
+                $file->setModel(null);
+            }
+        }
 
         return $this;
     }
