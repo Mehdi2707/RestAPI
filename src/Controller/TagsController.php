@@ -44,7 +44,7 @@ class TagsController extends AbstractController
     public function getTagList(TagRepository $tagRepository, SerializerInterface $serializer, Request $request, VersioningService $versioningService): JsonResponse
     {
         $term = $request->get('term', '');
-
+    
         $version = $versioningService->getVersion();
         $tagList = $tagRepository->findAllWithSearch($term);
         $context = SerializationContext::create()->setGroups(['getTags']);
