@@ -32,46 +32,46 @@ class AppFixtures extends Fixture
         $userAdmin->setPassword($this->userPasswordHasher->hashPassword($userAdmin, "password"));
         $manager->persist($userAdmin);
 
-        $listModel = [];
-
-        for ($i = 0; $i < 20; $i++) {
-            $model = new Models();
-            $model->setTitle('Modèle ' . $i);
-            $model->setCreatedAt(new \DateTimeImmutable());
-            $model->setDescription('Description du modèle ' . $i);
-            $model->setSlug('modele-' . $i);
-            $manager->persist($model);
-            $listModel[] = $model;
-        }
-
-        for ($i = 0; $i < 20; $i++) {
-            $image = new Images();
-            $image->setName('image' . $i . '.webp');
-            $image->setModel($listModel[array_rand($listModel)]);
-            $manager->persist($image);
-        }
-
-        for ($i = 0; $i < 20; $i++) {
-            $file = new File();
-            $file->setName('fichier' . $i . '.stl');
-            $file->setModel($listModel[array_rand($listModel)]);
-            $manager->persist($file);
-        }
-
-        $listTag = [];
-
-        for ($i = 0; $i < 20; $i++) {
-            $tag = new Tag();
-            $tag->setName('tag-' . $i);
-            $tag->addModel($listModel[array_rand($listModel)]);
-            $manager->persist($tag);
-            $listTag[] = $tag;
-        }
-
-        foreach ($listModel as $model) {
-            $model->addTag($listTag[array_rand($listTag)]);
-            $manager->persist($model);
-        }
+//        $listModel = [];
+//
+//        for ($i = 0; $i < 20; $i++) {
+//            $model = new Models();
+//            $model->setTitle('Modèle ' . $i);
+//            $model->setCreatedAt(new \DateTimeImmutable());
+//            $model->setDescription('Description du modèle ' . $i);
+//            $model->setSlug('modele-' . $i);
+//            $manager->persist($model);
+//            $listModel[] = $model;
+//        }
+//
+//        for ($i = 0; $i < 20; $i++) {
+//            $image = new Images();
+//            $image->setName('image' . $i . '.webp');
+//            $image->setModel($listModel[array_rand($listModel)]);
+//            $manager->persist($image);
+//        }
+//
+//        for ($i = 0; $i < 20; $i++) {
+//            $file = new File();
+//            $file->setName('fichier' . $i . '.stl');
+//            $file->setModel($listModel[array_rand($listModel)]);
+//            $manager->persist($file);
+//        }
+//
+//        $listTag = [];
+//
+//        for ($i = 0; $i < 20; $i++) {
+//            $tag = new Tag();
+//            $tag->setName('tag-' . $i);
+//            $tag->addModel($listModel[array_rand($listModel)]);
+//            $manager->persist($tag);
+//            $listTag[] = $tag;
+//        }
+//
+//        foreach ($listModel as $model) {
+//            $model->addTag($listTag[array_rand($listTag)]);
+//            $manager->persist($model);
+//        }
 
         $manager->flush();
     }

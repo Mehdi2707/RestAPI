@@ -73,7 +73,7 @@ class Models
     #[Groups(["getModels", "getFiles", "getTags"])]
     private Collection $images;
 
-    #[ORM\ManyToMany(targetEntity: Tag::class, inversedBy: 'models')]
+    #[ORM\ManyToMany(targetEntity: Tag::class, inversedBy: 'models', cascade: ['persist'])]
     #[Groups(["getModels", "getImages", "getFiles"])]
     #[Since("2.0")]
     private Collection $tags;

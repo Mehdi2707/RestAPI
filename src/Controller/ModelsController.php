@@ -2,9 +2,13 @@
 
 namespace App\Controller;
 
+use App\Entity\File;
 use App\Entity\Images;
 use App\Entity\Models;
+use App\Entity\Tag;
 use App\Repository\ModelsRepository;
+use App\Repository\TagRepository;
+use App\Service\FileService;
 use App\Service\PictureService;
 use App\Service\VersioningService;
 use Doctrine\ORM\EntityManagerInterface;
@@ -131,9 +135,23 @@ class ModelsController extends AbstractController
         description: "Supprime un modèle"
     )]
     #[OA\Tag(name: "Models")]
-    public function deleteBook(Models $model, EntityManagerInterface $em, TagAwareCacheInterface $cache): JsonResponse
+    public function deleteModel(Models $model, EntityManagerInterface $em, TagAwareCacheInterface $cache, PictureService $pictureService, FileService $fileService): JsonResponse
     {
         $cache->invalidateTags(['modelsCache']);
+        $cache->invalidateTags(['modelCache']);
+
+        foreach($model->getImages() as $image)
+        {
+            $pictureService->delete($image->getName(), 'models', 400, 400);
+            $em->remove($image);
+        }
+
+        foreach($model->getFiles() as $file)
+        {
+            $fileService->delete($file->getName(), 'models');
+            $em->remove($file);
+        }
+
         $em->remove($model);
         $em->flush();
 
@@ -164,7 +182,7 @@ class ModelsController extends AbstractController
     )]
     #[OA\Tag(name: "Models")]
     #[IsGranted('ROLE_ADMIN', message: "Vous n\'avez pas les droits suffisants pour créer un modèle")]
-    public function createModel(Request $request, SerializerInterface $serializer, EntityManagerInterface $em, PictureService $pictureService, UrlGeneratorInterface $urlGenerator, ValidatorInterface $validator, TagAwareCacheInterface $cache, SluggerInterface $slugger): JsonResponse
+    public function createModel(Request $request, SerializerInterface $serializer, EntityManagerInterface $em, PictureService $pictureService, TagRepository $tagRepository, FileService $fileService, UrlGeneratorInterface $urlGenerator, ValidatorInterface $validator, TagAwareCacheInterface $cache, SluggerInterface $slugger): JsonResponse
     {
         $modelData = $request->request->all();
 
@@ -173,7 +191,6 @@ class ModelsController extends AbstractController
         $model->setSlug($slugger->slug($modelData['title'])->lower());
         $model->setTitle($modelData['title']);
         $model->setDescription($modelData['description']);
-//        $model->setFile($modelData['file']);
 
         $errors = $validator->validate($model);
 
@@ -188,6 +205,35 @@ class ModelsController extends AbstractController
                 $image = new Images();
                 $image->setName($file);
                 $model->addImage($image);
+            }
+        }
+
+        if($request->files->get('files')) {
+            foreach ($request->files->get('files') as $fileData) {
+                $folder = 'models';
+                $uploadedFile = $fileService->add($fileData, $folder);
+
+                $file = new File();
+                $file->setName($uploadedFile);
+                $model->addFile($file);
+            }
+        }
+
+        if(array_key_exists('tags', $modelData)) {
+            foreach ($modelData['tags'] as $tag) {
+
+                $tagExist = $tagRepository->findOneBy(['name' => $tag]);
+
+                if($tagExist)
+                {
+                    $model->addTag($tagExist);
+                }
+                else
+                {
+                    $newTag = new Tag();
+                    $newTag->setName($tag);
+                    $newTag->addModel($model);
+                }
             }
         }
 
@@ -225,14 +271,18 @@ class ModelsController extends AbstractController
     // Attribut pour mettre a jour un modèle à faire
     #[OA\Tag(name: "Models")]
     #[IsGranted('ROLE_ADMIN', message: "Vous n\'avez pas les droits suffisants pour éditer un modèle")]
-    public function updateModel(Request $request, SerializerInterface $serializer, PictureService $pictureService, Models $model, EntityManagerInterface $em, ValidatorInterface $validator, TagAwareCacheInterface $cache, SluggerInterface $slugger): JsonResponse
+    public function updateModel(Request $request, SerializerInterface $serializer, PictureService $pictureService, FileService $fileService, TagRepository $tagRepository, Models $model, EntityManagerInterface $em, ValidatorInterface $validator, TagAwareCacheInterface $cache, SluggerInterface $slugger): JsonResponse
     {
         $updatedModel = $request->request->all();
+        $currentTags = $model->getTags();
+
+        foreach ($currentTags as $tagModel) {
+            $model->removeTag($tagModel);
+        }
 
         $model->setSlug($slugger->slug($updatedModel['title'])->lower());
         $model->setTitle($updatedModel['title']);
         $model->setDescription($updatedModel['description']);
-//        $model->setFile($updatedModel['file']);
 
         $errors = $validator->validate($model);
 
@@ -247,6 +297,35 @@ class ModelsController extends AbstractController
                 $image = new Images();
                 $image->setName($file);
                 $model->addImage($image);
+            }
+        }
+
+        if($request->files->get('files')) {
+            foreach ($request->files->get('files') as $fileData) {
+                $folder = 'models';
+                $uploadedFile = $fileService->add($fileData, $folder);
+
+                $file = new File();
+                $file->setName($uploadedFile);
+                $model->addFile($file);
+            }
+        }
+
+        if(array_key_exists('tags', $updatedModel)) {
+            foreach ($updatedModel['tags'] as $tag) {
+
+                $tagExist = $tagRepository->findOneBy(['name' => $tag]);
+
+                if($tagExist)
+                {
+                    $model->addTag($tagExist);
+                }
+                else
+                {
+                    $newTag = new Tag();
+                    $newTag->setName($tag);
+                    $newTag->addModel($model);
+                }
             }
         }
 
