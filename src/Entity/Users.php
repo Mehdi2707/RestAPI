@@ -3,7 +3,10 @@
 namespace App\Entity;
 
 use App\Repository\UsersRepository;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use JMS\Serializer\Annotation\Groups;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
 
@@ -14,15 +17,18 @@ class Users implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
+    #[Groups(["getModels", "getImages", "getFiles", "getTags"])]
     private ?int $id = null;
 
     #[ORM\Column(length: 180)]
+    #[Groups(["getModels", "getImages", "getFiles", "getTags"])]
     private ?string $email = null;
 
     /**
      * @var list<string> The user roles
      */
     #[ORM\Column]
+    #[Groups(["getModels", "getImages", "getFiles", "getTags"])]
     private array $roles = [];
 
     /**
@@ -30,6 +36,15 @@ class Users implements UserInterface, PasswordAuthenticatedUserInterface
      */
     #[ORM\Column]
     private ?string $password = null;
+
+    #[ORM\OneToMany(targetEntity: Models::class, mappedBy: 'user')]
+    #[Groups(["getImages", "getFiles", "getTags"])]
+    private Collection $models;
+
+    public function __construct()
+    {
+        $this->models = new ArrayCollection();
+    }
 
     public function getId(): ?int
     {
@@ -112,5 +127,35 @@ class Users implements UserInterface, PasswordAuthenticatedUserInterface
      */
     public function getUsername(): string {
         return $this->getUserIdentifier();
+    }
+
+    /**
+     * @return Collection<int, Models>
+     */
+    public function getModels(): Collection
+    {
+        return $this->models;
+    }
+
+    public function addModel(Models $model): static
+    {
+        if (!$this->models->contains($model)) {
+            $this->models->add($model);
+            $model->setUser($this);
+        }
+
+        return $this;
+    }
+
+    public function removeModel(Models $model): static
+    {
+        if ($this->models->removeElement($model)) {
+            // set the owning side to null (unless already changed)
+            if ($model->getUser() === $this) {
+                $model->setUser(null);
+            }
+        }
+
+        return $this;
     }
 }

@@ -83,6 +83,11 @@ class Models
     #[Since("2.0")]
     private Collection $files;
 
+    #[ORM\ManyToOne(inversedBy: 'models')]
+    #[Groups(["getModels", "getImages", "getFiles", "getTags"])]
+    #[Since("2.0")]
+    private ?Users $user = null;
+
     public function __construct()
     {
         $this->images = new ArrayCollection();
@@ -224,6 +229,18 @@ class Models
                 $file->setModel(null);
             }
         }
+
+        return $this;
+    }
+
+    public function getUser(): ?Users
+    {
+        return $this->user;
+    }
+
+    public function setUser(?Users $user): static
+    {
+        $this->user = $user;
 
         return $this;
     }

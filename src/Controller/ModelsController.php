@@ -16,6 +16,7 @@ use JMS\Serializer\SerializationContext;
 use JMS\Serializer\SerializerInterface;
 use Psr\Cache\InvalidArgumentException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -27,7 +28,6 @@ use Symfony\Component\Validator\Validator\ValidatorInterface;
 use Symfony\Contracts\Cache\ItemInterface;
 use Symfony\Contracts\Cache\TagAwareCacheInterface;
 use Nelmio\ApiDocBundle\Annotation\Model;
-use Nelmio\ApiDocBundle\Annotation\Security;
 use OpenApi\Attributes as OA;
 
 class ModelsController extends AbstractController
@@ -182,7 +182,7 @@ class ModelsController extends AbstractController
     )]
     #[OA\Tag(name: "Models")]
     #[IsGranted('ROLE_ADMIN', message: "Vous n\'avez pas les droits suffisants pour créer un modèle")]
-    public function createModel(Request $request, SerializerInterface $serializer, EntityManagerInterface $em, PictureService $pictureService, TagRepository $tagRepository, FileService $fileService, UrlGeneratorInterface $urlGenerator, ValidatorInterface $validator, TagAwareCacheInterface $cache, SluggerInterface $slugger): JsonResponse
+    public function createModel(Request $request, Security $security, SerializerInterface $serializer, EntityManagerInterface $em, PictureService $pictureService, TagRepository $tagRepository, FileService $fileService, UrlGeneratorInterface $urlGenerator, ValidatorInterface $validator, TagAwareCacheInterface $cache, SluggerInterface $slugger): JsonResponse
     {
         $modelData = $request->request->all();
 
@@ -191,6 +191,7 @@ class ModelsController extends AbstractController
         $model->setSlug($slugger->slug($modelData['title'])->lower());
         $model->setTitle($modelData['title']);
         $model->setDescription($modelData['description']);
+        $model->setUser($security->getUser());
 
         $errors = $validator->validate($model);
 
