@@ -23,17 +23,25 @@ class ModelsRepository extends ServiceEntityRepository
     }
 
     /**
-     * @return Models[] Returns an array of Models objects with pagination and search
+     * @return Models[] Returns an array of Models objects with pagination, search and tag
      */
-    public function findAllWithPaginationAndSearch($page, $limit, $term): array
+    public function findAllWithPaginationAndSearchOrTag($page, $limit, $term, $tag): array
     {
         $result = [];
 
-        $qb = $this->createQueryBuilder('m')
-            ->where('m.title LIKE :term')
-            ->orWhere('m.description LIKE :term')
-            ->setParameter('term', '%' . $term . '%')
-            ->setFirstResult(($page - 1) * $limit)
+        $qb = $this->createQueryBuilder('m');
+
+        if ($tag) {
+            $qb->innerJoin('m.tags', 't')
+                ->where('t.name = :tag')
+                ->setParameter('tag', $tag);
+        } elseif ($term) {
+            $qb->where('m.title LIKE :term')
+                ->orWhere('m.description LIKE :term')
+                ->setParameter('term', '%' . $term . '%');
+        }
+
+        $qb->setFirstResult(($page - 1) * $limit)
             ->setMaxResults($limit);
 
         $paginator = new Paginator($qb);

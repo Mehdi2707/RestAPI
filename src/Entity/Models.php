@@ -88,6 +88,10 @@ class Models
     #[Since("2.0")]
     private ?Users $user = null;
 
+    #[ORM\Column(length: 255)]
+    #[Groups(["getModels", "getImages", "getFiles", "getTags"])]
+    private ?string $file = null;
+
     public function __construct()
     {
         $this->images = new ArrayCollection();
@@ -241,6 +245,18 @@ class Models
     public function setUser(?Users $user): static
     {
         $this->user = $user;
+
+        return $this;
+    }
+
+    public function getFile(): ?string
+    {
+        return $this->file;
+    }
+
+    public function setFile(string $file): static
+    {
+        $this->file = $file;
 
         return $this;
     }

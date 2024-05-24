@@ -33,7 +33,7 @@ use OpenApi\Attributes as OA;
 class ModelsController extends AbstractController
 {
     /**
-     * Cette méthode permet de récupérer l'ensemble des modèles
+     * Cette méthode permet de récupérer des modèles
      *
      * @param ModelsRepository $modelsRepository
      * @param SerializerInterface $serializer
@@ -67,19 +67,26 @@ class ModelsController extends AbstractController
         in: "query",
         schema: new OA\Schema(type: 'string')
     )]
+    #[OA\Parameter(
+        name: "tag",
+        description: "Tag associé à un modèle pour effectuer une recherche",
+        in: "query",
+        schema: new OA\Schema(type: 'string')
+    )]
     #[OA\Tag(name: "Models")]
     public function getModelList(ModelsRepository $modelsRepository, SerializerInterface $serializer, Request $request, TagAwareCacheInterface $cache, VersioningService $versioningService): JsonResponse
     {
         $page = $request->get('page', 1);
         $limit = $request->get('limit', 3);
         $term = $request->get('term', '');
+        $tag = $request->get('tag', '');
 
-        $idCache = "getModelList-" . $page . "-" . $limit . "-" . $term;
+        $idCache = "getModelList-" . $page . "-" . $limit . "-" . $term . "-" . $tag;
 
-        $jsonModelList = $cache->get($idCache, function (ItemInterface $item) use ($modelsRepository, $page, $limit, $term, $serializer, $versioningService) {
+        $jsonModelList = $cache->get($idCache, function (ItemInterface $item) use ($modelsRepository, $page, $limit, $term, $tag, $serializer, $versioningService) {
             $item->tag("modelsCache");
             $version = $versioningService->getVersion();
-            $modelList = $modelsRepository->findAllWithPaginationAndSearch($page, $limit, $term);
+            $modelList = $modelsRepository->findAllWithPaginationAndSearchOrTag($page, $limit, $term, $tag);
             $context = SerializationContext::create()->setGroups(['getModels']);
             $context->setVersion($version);
             return $serializer->serialize($modelList, 'json', $context);
@@ -209,16 +216,33 @@ class ModelsController extends AbstractController
             }
         }
 
+        $zip = new \ZipArchive();
+        $zipFilename = $model->getTitle() . ' - ' . rand() . '.zip';
+
+        if ($zip->open($zipFilename, \ZipArchive::CREATE) !== true) {
+            throw new \Exception('Cannot create zip file');
+        }
+
         if($request->files->get('files')) {
             foreach ($request->files->get('files') as $fileData) {
                 $folder = 'models';
                 $uploadedFile = $fileService->add($fileData, $folder);
+
+                $filePath = $this->getParameter('images_directory') . 'models/' . $uploadedFile;
+                $zip->addFile($filePath, basename($filePath));
 
                 $file = new File();
                 $file->setName($uploadedFile);
                 $model->addFile($file);
             }
         }
+
+        $zip->close();
+
+        $finalZipPath = $this->getParameter('images_directory') . 'models/' . basename($zipFilename);
+        rename($zipFilename, $finalZipPath);
+
+        $model->setFile($zipFilename);
 
         if(array_key_exists('tags', $modelData)) {
             foreach ($modelData['tags'] as $tag) {

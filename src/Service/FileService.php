@@ -17,13 +17,15 @@ class FileService
 
     public function add(UploadedFile $file, ?string $folder = '')
     {
+        $originalFilename = $file->getClientOriginalName();
+        // TODO Voir pour mettre un nom de fichier unique et faire un dossier pour chaque modele...
         $newFile = md5(uniqid(rand(), true)) . '.' . $file->getClientOriginalExtension();
 
         $path = $this->params->get('images_directory') . $folder;
 
-        $file->move($path . '/', $newFile);
+        $file->move($path . '/', $originalFilename);
 
-        return $newFile;
+        return $originalFilename;
     }
 
     public function delete(string $file, ?string $folder = '')
