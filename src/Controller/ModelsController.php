@@ -133,6 +133,8 @@ class ModelsController extends AbstractController
      * @param Models $model
      * @param EntityManagerInterface $em
      * @param TagAwareCacheInterface $cache
+     * @param PictureService $pictureService
+     * @param FileService $fileService
      * @return JsonResponse
      * @throws InvalidArgumentException
      */
@@ -169,11 +171,16 @@ class ModelsController extends AbstractController
      * Cette méthode permet d'insérer un nouveau modèle.
      *
      * @param Request $request
+     * @param Security $security
      * @param SerializerInterface $serializer
      * @param EntityManagerInterface $em
+     * @param PictureService $pictureService
+     * @param TagRepository $tagRepository
+     * @param FileService $fileService
      * @param UrlGeneratorInterface $urlGenerator
      * @param ValidatorInterface $validator
      * @param TagAwareCacheInterface $cache
+     * @param SluggerInterface $slugger
      * @return JsonResponse
      * @throws InvalidArgumentException
      */
@@ -226,9 +233,9 @@ class ModelsController extends AbstractController
         if($request->files->get('files')) {
             foreach ($request->files->get('files') as $fileData) {
                 $folder = 'models';
-                $uploadedFile = $fileService->add($fileData, $folder);
+                $uploadedFile = $fileService->add($fileData, $security->getUser(), $folder, $slugger->slug($modelData['title'])->lower());
 
-                $filePath = $this->getParameter('images_directory') . 'models/' . $uploadedFile;
+                $filePath = $this->getParameter('images_directory') . 'models/' . $security->getUser()->getUsername() . '/' . $slugger->slug($modelData['title'])->lower() . '/' . $uploadedFile;
                 $zip->addFile($filePath, basename($filePath));
 
                 $file = new File();
@@ -280,11 +287,16 @@ class ModelsController extends AbstractController
      * Cette méthode permet de mettre à jour un modèle en fonction de son id.
      *
      * @param Request $request
+     * @param Security $security
      * @param SerializerInterface $serializer
+     * @param PictureService $pictureService
+     * @param FileService $fileService
+     * @param TagRepository $tagRepository
      * @param Models $model
      * @param EntityManagerInterface $em
      * @param ValidatorInterface $validator
      * @param TagAwareCacheInterface $cache
+     * @param SluggerInterface $slugger
      * @return JsonResponse
      * @throws InvalidArgumentException
      */
@@ -296,7 +308,7 @@ class ModelsController extends AbstractController
     // Attribut pour mettre a jour un modèle à faire
     #[OA\Tag(name: "Models")]
     #[IsGranted('ROLE_ADMIN', message: "Vous n\'avez pas les droits suffisants pour éditer un modèle")]
-    public function updateModel(Request $request, SerializerInterface $serializer, PictureService $pictureService, FileService $fileService, TagRepository $tagRepository, Models $model, EntityManagerInterface $em, ValidatorInterface $validator, TagAwareCacheInterface $cache, SluggerInterface $slugger): JsonResponse
+    public function updateModel(Request $request, Security $security, SerializerInterface $serializer, PictureService $pictureService, FileService $fileService, TagRepository $tagRepository, Models $model, EntityManagerInterface $em, ValidatorInterface $validator, TagAwareCacheInterface $cache, SluggerInterface $slugger): JsonResponse
     {
         $updatedModel = $request->request->all();
         $currentTags = $model->getTags();
@@ -328,7 +340,7 @@ class ModelsController extends AbstractController
         if($request->files->get('files')) {
             foreach ($request->files->get('files') as $fileData) {
                 $folder = 'models';
-                $uploadedFile = $fileService->add($fileData, $folder);
+                $uploadedFile = $fileService->add($fileData, $security->getUser(), $folder);
 
                 $file = new File();
                 $file->setName($uploadedFile);
