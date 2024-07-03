@@ -7,6 +7,7 @@ use App\Service\FileService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Contracts\Cache\TagAwareCacheInterface;
@@ -14,9 +15,9 @@ use Symfony\Contracts\Cache\TagAwareCacheInterface;
 class FilesController extends AbstractController
 {
     #[Route('/api/files/{id}', name: 'deleteFile', methods: ['DELETE'])]
-    public function deleteFile(File $file, EntityManagerInterface $em, FileService $fileService, TagAwareCacheInterface $cache): JsonResponse
+    public function deleteFile(Request $request, File $file, EntityManagerInterface $em, FileService $fileService, TagAwareCacheInterface $cache): JsonResponse
     {
-        $fileService->delete($file->getName(), 'models');
+        $fileService->delete($file->getName(), 'models/' . $this->getUser()->getUsername() . '/' . $request->getPayload()->get('slug'));
         $em->remove($file);
         $em->flush();
 

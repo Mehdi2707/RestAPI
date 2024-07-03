@@ -157,9 +157,12 @@ class ModelsController extends AbstractController
 
         foreach($model->getFiles() as $file)
         {
-            $fileService->delete($file->getName(), 'models');
+            $fileService->delete($file->getName(), 'models/' . $this->getUser()->getUsername() . '/' . $model->getSlug());
             $em->remove($file);
         }
+
+        $fileService->delete($model->getFile(), 'models');
+        rmdir($this->getParameter('images_directory') . 'models/' . $this->getUser()->getUsername() . '/' . $model->getSlug());
 
         $em->remove($model);
         $em->flush();
@@ -233,9 +236,9 @@ class ModelsController extends AbstractController
         if($request->files->get('files')) {
             foreach ($request->files->get('files') as $fileData) {
                 $folder = 'models';
-                $uploadedFile = $fileService->add($fileData, $security->getUser(), $folder, $slugger->slug($modelData['title'])->lower());
+                $uploadedFile = $fileService->add($fileData, $security->getUser(), $folder, $model->getSlug());
 
-                $filePath = $this->getParameter('images_directory') . 'models/' . $security->getUser()->getUsername() . '/' . $slugger->slug($modelData['title'])->lower() . '/' . $uploadedFile;
+                $filePath = $this->getParameter('images_directory') . 'models/' . $security->getUser()->getUsername() . '/' . $model->getSlug() . '/' . $uploadedFile;
                 $zip->addFile($filePath, basename($filePath));
 
                 $file = new File();
@@ -337,16 +340,35 @@ class ModelsController extends AbstractController
             }
         }
 
+        $fileService->delete($model->getFile(), 'models');
+
+        $zip = new \ZipArchive();
+        $zipFilename = $model->getTitle() . ' - ' . rand() . '.zip';
+
+        if ($zip->open($zipFilename, \ZipArchive::CREATE) !== true) {
+            throw new \Exception('Cannot create zip file');
+        }
+
         if($request->files->get('files')) {
             foreach ($request->files->get('files') as $fileData) {
                 $folder = 'models';
-                $uploadedFile = $fileService->add($fileData, $security->getUser(), $folder);
+                $uploadedFile = $fileService->add($fileData, $security->getUser(), $folder, $model->getSlug());
+
+                $filePath = $this->getParameter('images_directory') . 'models/' . $security->getUser()->getUsername() . '/' . $model->getSlug() . '/' . $uploadedFile;
+                $zip->addFile($filePath, basename($filePath));
 
                 $file = new File();
                 $file->setName($uploadedFile);
                 $model->addFile($file);
             }
         }
+
+        $zip->close();
+
+        $finalZipPath = $this->getParameter('images_directory') . 'models/' . basename($zipFilename);
+        rename($zipFilename, $finalZipPath);
+
+        $model->setFile($zipFilename);
 
         if(array_key_exists('tags', $updatedModel)) {
             foreach ($updatedModel['tags'] as $tag) {
