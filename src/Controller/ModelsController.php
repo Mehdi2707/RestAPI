@@ -315,6 +315,8 @@ class ModelsController extends AbstractController
     {
         $updatedModel = $request->request->all();
         $currentTags = $model->getTags();
+        $currentSlug = $model->getSlug();
+        $currentFiles = $model->getFiles();
 
         foreach ($currentTags as $tagModel) {
             $model->removeTag($tagModel);
@@ -361,6 +363,12 @@ class ModelsController extends AbstractController
                 $file->setName($uploadedFile);
                 $model->addFile($file);
             }
+        }
+
+        foreach ($currentFiles as $file)
+        {
+            $filePath = $this->getParameter('images_directory') . 'models/' . $security->getUser()->getUsername() . '/' . $currentSlug . '/' . $file->getName();
+            $zip->addFile($filePath, basename($filePath));
         }
 
         $zip->close();
