@@ -227,7 +227,7 @@ class ModelsController extends AbstractController
         }
 
         $zip = new \ZipArchive();
-        $zipFilename = $model->getTitle() . ' - ' . rand() . '.zip';
+        $zipFilename = $model->getSlug() . ' - ' . rand() . '.zip';
 
         if ($zip->open($zipFilename, \ZipArchive::CREATE) !== true) {
             throw new \Exception('Cannot create zip file');
@@ -345,7 +345,7 @@ class ModelsController extends AbstractController
         $fileService->delete($model->getFile(), 'models');
 
         $zip = new \ZipArchive();
-        $zipFilename = $model->getTitle() . ' - ' . rand() . '.zip';
+        $zipFilename = $model->getSlug() . ' - ' . rand() . '.zip';
 
         if ($zip->open($zipFilename, \ZipArchive::CREATE) !== true) {
             throw new \Exception('Cannot create zip file');
@@ -377,6 +377,15 @@ class ModelsController extends AbstractController
         rename($zipFilename, $finalZipPath);
 
         $model->setFile($zipFilename);
+
+        if($currentSlug !== $model->getSlug())
+        {
+            foreach ($currentFiles as $file)
+            {
+                $fileService->move($security->getUser(), $currentSlug, $model->getSlug(), $file->getName());
+            }
+            rmdir($this->getParameter('images_directory') . 'models/' . $security->getUser()->getUsername() . '/' . $currentSlug . '/');
+        }
 
         if(array_key_exists('tags', $updatedModel)) {
             foreach ($updatedModel['tags'] as $tag) {

@@ -48,4 +48,22 @@ class FileService
         }
         return false;
     }
+
+    public function move(Users $user, string $currentSlug, string $slug, string $filename)
+    {
+        $success = false;
+        $path = $this->params->get('images_directory') . 'models/' . $user->getUsername();
+        $oldPath = $path . '/' . $currentSlug;
+        $newPath = $path . '/' . $slug;
+
+        if(!file_exists($newPath . '/'))
+            mkdir($newPath . '/', 0755, true);
+
+        if(file_exists($oldPath . '/' . $filename))
+        {
+            rename($oldPath . '/' . $filename, $newPath . '/' . $filename);
+            $success = true;
+        }
+        return $success;
+    }
 }
